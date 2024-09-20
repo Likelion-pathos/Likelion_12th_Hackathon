@@ -48,22 +48,22 @@ class DataViewSet(ModelViewSet):
     def rate(self, request, pk=None):
         exhibition = self.get_object()
         user = request.user
-        rating_value = request.data.get('score') 
+        rating_value = request.data.get('rating')
 
-        # if not rating_value or not (0.5 <= float(rating_value) <= 5.0) or float(rating_value) % 0.5 != 0:
-        #     return Response({'error': 'Invalid rating value'}, status=status.HTTP_400_BAD_REQUEST)
+        if not rating_value or not (0.5 <= float(rating_value) <= 5.0) or float(rating_value) % 0.5 != 0:
+            return Response({'error': 'Invalid rating value'}, status=status.HTTP_400_BAD_REQUEST)
         
-        rating, created = Rating.objects.get_or_create(user=user, item=exhibition)
-        rating.score = rating_value
+        rating, created = Rating.objects.get_or_create(user=user, exhibition=exhibition)
+        rating.rating = rating_value
         rating.save()
 
-        return Response({'status': 'rating set', 'score': rating_value})
+        return Response({'status': 'rating set', 'rating': rating_value})
 
     # 별점 조회
     @action(detail=True, methods=['get'], url_path='ratings')
     def get_ratings(self, request, pk=None):
         exhibition = self.get_object()
-        average_rating = exhibition.ratings.aggregate(Avg('score'))['score__avg']
+        average_rating = exhibition.ratings.aggregate(Avg('rating'))['rating__avg']
         if average_rating is None:
             average_rating = 0.0
         else:
@@ -97,10 +97,9 @@ def Dataload(request):
         # 'PERIOD'가 연도를 포함하는지 확인하고 필터링
         try:
             period_year = int(period_text[:4])  # 첫 4자리를 연도로 파싱
-            period_month = int(period_text[5:7])
         except ValueError:
             continue 
-        if period_year > 2019 or (period_year == 2019 and period_month >= 3):
+        if period_year >= 2019:
             item_dict = {
                 'TITLE': item.find('TITLE').text,
                 'DESCRIPTION': item.find('DESCRIPTION').text,

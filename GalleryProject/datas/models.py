@@ -1,13 +1,12 @@
 from django.db import models
 from django.contrib.auth import get_user_model # 커스텀유저 모델 가져오기
 
-
 # openApi 사용해서 데이터 불러오기
 class DataModel(models.Model):
     title = models.CharField(max_length=200) # TITLE 제목
-    description = models.CharField(max_length=10000, null=True) # DESCRIPTION 소개(설명)
+    description = models.CharField(max_length=1000, null=True) # DESCRIPTION 소개(설명)
     image = models.URLField(max_length=1000, null=True) # IAMGE_OBJECT 이미지주소
-    pageUrl = models.URLField(max_length=1000, null=True) # URL 홈페이지 주소
+    pageUrl = models.URLField(max_length=200, null=True) # URL 홈페이지 주소
     author = models.CharField(max_length=200, null=True) # AUTHOR 작가
     period = models.CharField(max_length=200, null=True) # PERIOD 기간
     time = models.CharField(max_length=200, null=True) # EVENT_PERIOD 관람시간
@@ -95,13 +94,24 @@ class Comment(models.Model):
             self.profile = self.user.profile.url 
         super().save(*args, **kwargs)
 
-
 # 별점
 class Rating(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    item = models.ForeignKey(DataModel, related_name='ratings', on_delete=models.CASCADE)
-    score = models.FloatField(default=0.0)
-    created_at = models.DateTimeField(auto_now_add=True)
+    exhibition = models.ForeignKey(DataModel, on_delete=models.CASCADE, related_name='ratings')
+    rating = models.FloatField(default=0.0)
 
     class Meta:
-        unique_together = ('user', 'item')
+        unique_together = ('user', 'exhibition')
+
+    def __str__(self):
+        return f'{self.user} - {self.exhibition} - {self.rating}'
+
+    @property
+    def average_rating(self):
+        ratings = Rating.objects.filter(exhibition=self.exhibition)
+        total = sum(r.rating for r in ratings)
+        return total / ratings.count()
+
+    @property
+    def rating_count(self):
+        return Rating.objects.filter(exhibition=self.exhibition).count()
